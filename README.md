@@ -19,26 +19,30 @@
 - 표준 스택 고정: Next.js App Router + TypeScript + Prisma + Postgres(+pgvector), Vercel 배포.
 - 실험의 최소 단위는 앱 완성이 아니라 **로그 한 페이지 완성**.
 
-## 이번 주 목표 (W1)
+## 이번 주 목표 (W1) — 확정: P1 AI 페르소나 채팅
 
 2026-09-18 금요일까지 배포 가능한 풀스택 앱을 하나 만든다.
 
-앱 주제, 장면, 학습 격차는 이번 주 진행 중에 확정한다. 이번 주의 우선순위는
-아이디어의 정교함보다 **배포 가능한 end-to-end 결과물**이다.
+- **앱**: AI 페르소나 채팅(가상 아티스트 "필립"). 폴더 `apps/w01-persona-chat/`.
+- **장면**: 팬이 가상 아티스트에게 말을 걸면 답이 "타이핑되듯" 한 토큰씩 흘러나오는 채팅.
+- **격차**: LLM 토큰 스트리밍(OpenAI Responses API → 서버 SSE 릴레이).
+- **스펙**: [docs/p1-spec.md](./docs/p1-spec.md) · 킥오프 [docs/p1-원샷-킥오프.md](./docs/p1-원샷-킥오프.md) · 로그 [logs/w01.md](./logs/w01.md).
+- 이번 주 방식: **자동화 없이 손으로 한 바퀴** 돌리며 마찰을 줍는다(측정선 오염 방지).
 
-## 라인업 초안 (Season 1)
+## 라인업 (Season 1)
 
-아래 라인업은 시작점일 뿐이다. 매일/매주 실행하면서 더 나은 방향이 보이면 바꾼다.
+**현재 방향 = JYP 대응 P-라인업** ([docs/계획-jyp-특이점-라인업.md](./docs/계획-jyp-특이점-라인업.md)). 하나의 AI 아티스트 서비스로 합쳐지는 5개 앱.
 
 | 주 | 앱 | 장면 | 채우는 격차 |
 |---|---|---|---|
-| W1 | 리뷰→필터 UI 생성기 | 상품 리뷰 뭉치를 넣으면 필터 UI가 자라나는 화면 | structured output, RSC |
-| W2 | 환불 승인 인박스 | CS가 AI의 환불 판정 제안을 근거와 함께 승인/반려 | function calling, HITL, auth |
-| W3 | RAG 디버거 | 청킹·검색·답변 3칸, 설정 바꿔 전/후 비교 | RAG, pgvector |
-| W4 | 채점판 | W1~W3 출력의 golden set + LLM judge 회귀 채점 | evaluation |
-| W5 | Factory 자체 개선 | 실패 로그를 다음 스펙에 자동 삽입 | feedback loop |
-| W6 | 지원 레이더 | 공고 구조화 + 이력서 대조 격차 리포트 | 실사용 dogfooding |
-| W7 | 버퍼 | — | — |
+| **W1 (확정)** | **P1 AI 페르소나 채팅** | 팬이 가상 아티스트와 실시간 대화, 토큰 스트리밍 | **LLM 토큰 스트리밍** |
+| W2 | P2 AI 음성 통화 (+ auth) | AI 아티스트에게 전화 (STT→LLM→TTS) | TTS/STT, 오디오 스트리밍, auth |
+| W3 | P4 발화 승인 게이트 | AI 발화를 사람이 검수·승인, 위험 발화 플래그 | function calling, HITL |
+| W4 | P3 RN 팬 앱 | P1+P2를 Expo로 iOS/Android 포팅 | React Native |
+| W5 | Factory 자체 개선 / P5 관제판 | 실패 로그 자동 삽입 + 지연·비용·오류 대시보드 | feedback loop, 운영 계측 |
+| W6~7 | 버퍼 / 지원 레이더 | 공고 구조화 + 이력서 대조 | 실사용 dogfooding |
+
+> 순서·구성은 진행하며 조정한다. 옛 W-라인업(리뷰→필터 등)은 P-라인업으로 교체됨.
 
 ## 원샷 경계: 사람이 준비할 것 vs AI(원샷)가 하는 것
 
@@ -64,7 +68,14 @@ factory/          템플릿, 지표 (공장 본체)
   SPEC_TEMPLATE.md
   LOG_TEMPLATE.md
   metrics.csv
-apps/             매주 산출물 (w01-review-filter, ...)
+  .env.shared      공유 시크릿 원본 (gitignore, 사람이 관리)
+docs/             스펙·계획·조사·회고
+  p1-spec.md               P1 스펙 (원샷 입력)
+  p1-원샷-킥오프.md         새 세션 투입용 지시문
+  스펙-작성-체크리스트.md    스펙 작성 공정 규칙
+  api-선행조사-openai.md    API 선행조사 근거
+  회고/                     AI 협업 회고
+apps/             매주 산출물 (w01-persona-chat, ...)
 logs/             주간 로그 (w01.md, ...)
 CONTEXT.md        용어집 — 측정 정의의 단일 원천
 ```

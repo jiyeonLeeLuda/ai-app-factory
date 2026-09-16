@@ -1,1 +1,2 @@
 run_id,date,week,app,spec_variant,model,spec_prep_min,oneshot_min,cost_usd,iv_total,iv_design,iv_bug,iv_style,iv_missing,iv_nudge,first_pass,notes
+w01-p1,2026-09-16,W1,w01-persona-chat,S1+S2+S3+S4+S5,gpt-5-nano,,,,0,0,0,0,0,0,partial,"자동검증4 통과·스트리밍 동작 확인; 런타임 6항목 미확인; 인프라마찰 2건 원샷 자가해결(gotchas); 격차가설 오류→다중말풍선 진화(B)"
