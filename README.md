@@ -40,6 +40,23 @@
 | W6 | 지원 레이더 | 공고 구조화 + 이력서 대조 격차 리포트 | 실사용 dogfooding |
 | W7 | 버퍼 | — | — |
 
+## 원샷 경계: 사람이 준비할 것 vs AI(원샷)가 하는 것
+
+원샷을 돌리기 전에 **사람이 인프라를 준비**해야 하고, 그 위에서 **AI가 코드를 짓는다.**
+경계 원칙: **바깥 세계의 상태(서버·계정·시크릿)는 사람, 코드·파일·명령은 AI.**
+AI는 시크릿을 발급하거나 외부 서비스를 프로비저닝하지 않는다.
+
+| 구분 | 누가 | 예시 |
+|---|---|---|
+| 실행 환경·공유 시크릿 | **사람** (원샷 전, 한 번) | DB 서버 기동, **`CREATEDB` 권한 role 생성**, `factory/.env.shared`에 `OPENAI_API_KEY`+`CREATE_DB_URL`, Node 런타임, (배포 시) Vercel 프로젝트·환경변수 |
+| 폴더·앱 `.env`·**DB 생성**·코드 | **AI** (원샷) | 앱 폴더 리셋(해당 폴더만), 프로젝트 생성, `factory/.env.shared`로 앱 `.env` 생성(DB 이름은 앱 슬러그), **DB 생성**+`prisma migrate`+`db seed`, 앱 구현, typecheck/lint/build, 로컬 실행 |
+
+> 시크릿은 `factory/.env.shared`·앱 `.env`에만 두고 `.env*`는 `.gitignore` 처리 — 비번·API 키를 git에 커밋하지 않는다. 공유 원본(`factory/.env.shared`)은 사람이, 앱별 `.env`는 원샷이 생성한다.
+
+- 원칙: 원샷은 "접속 정보만 있으면 되는 안쪽 일"만 한다. DB를 *띄우는* 건 사람, DB에 *테이블을 만들고 채우는* 건 AI.
+- 각 주 SPEC은 상단에 **"사람 준비물(Prerequisites)"**을 명시해, 원샷 시작 전 체크 가능하게 한다.
+- 예 (W1/P1, 옵션 C): 사람 = 로컬 Postgres 기동 + `CREATEDB` 권한 role 생성 + `factory/.env.shared`(공유 키·베이스 접속). AI = 폴더 리셋·앱 `.env` 생성·DB 이름/생성·테이블(migrate)·시드·구현 등 나머지 전부.
+
 ## 구조
 
 ```
