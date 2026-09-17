@@ -1,6 +1,7 @@
 # SPEC — AI 페르소나 채팅 (P1)
 
 > 작성: 2026-09-16. 격차 A(LLM 토큰 스트리밍) 확정본 기준.
+> **개정: 2026-09-17** — W2 grilling에서 발견한 run1/run2 실측 함정 5개를 예방책으로 반영(`reasoning.effort:minimal`·`.env` 따옴표 제거·dev 포트 좀비 정리·프리체크 실구현·Next 버전 핀). 격차 정의는 불변, 부트스트랩/런타임 안정성 보강만. (W2 1부가 이 파일을 그대로 재현하므로 상속 함정 차단)
 > 이 파일 하나만 **새 세션**에 투입해 one-shot 실행한다. 출발선 = **완전 빈 폴더**.
 > spec_variant: S1+S2+S3+S4+S5
 >
@@ -135,9 +136,11 @@ B(auth-ready 스키마 + 쿠키 세션)로 가되, 아래를 지켜야 W2에서 
 ## S4. 비기능 제약
 
 - 스택 고정: Next.js App Router + TypeScript + Prisma + Postgres, Vercel 배포. (pgvector 불필요 — 이번 주 RAG 없음)
+- **Next 버전 핀**: `next@15`로 설치(`create-next-app`이 붙이는 `latest`는 현재 16.x — 매 실행 버전이 흔들려 재현성 저하). 15.x는 App Router 안정·문서 성숙. `latest`/canary 금지. (2026-09-17 추가 — run별 Next 버전 표류 방지)
 - **Prisma 버전 핀**: `prisma@6` + `@prisma/client@6`로 설치. `latest`/RC 금지 — Prisma 7+는 `datasource url = env(...)`를 폐기하고 `prisma.config.ts`+driver adapter를 요구해 클래식 `migrate dev`/`db seed` 흐름과 충돌한다(P1 원샷에서 실제 발생).
 - API: **OpenAI Responses API** (`client.responses.create`). 상세 근거는 `docs/api-선행조사-openai.md`.
 - 모델: 기본 **`gpt-5-nano`**(최저비용 $0.05/$0.40 — 이번 주는 시연 아닌 학습/측정용이라 비용 최소화). 톤 품질이 필요하면 `gpt-5.6-luna`($0.20/$1.20)로 상향. 환경변수로 주입, 하드코딩 금지. 키는 `OPENAI_API_KEY`. (최종 목표는 자체 모델 — 이 값은 임시 백엔드일 뿐)
+- **추론 예산 (필수 — 2026-09-17 추가)**: `gpt-5-nano`는 추론 모델이라 `reasoning: { effort: "minimal" }`을 **반드시** 준다. 안 주면 추론 토큰이 `max_output_tokens`(1000)를 다 먹어 **텍스트 응답이 빈 채로 완료**된다(run2에서 실측 — 스트리밍이 안 나옴). effort는 env로 조정 가능하게 두되 기본 `minimal`.
 - 스트리밍: 서버 Route Handler에서 `responses.create({stream:true})`로 받아 **SSE(text/event-stream)** 로 클라 릴레이. 토큰은 `response.output_text.delta` 이벤트의 `delta`, 종료는 `response.completed`. Edge 아님, Node 런타임.
 - 역할·페르소나: 대화 턴은 `user`/`assistant` (OpenAI엔 `system` 없음, 지시는 `developer`). 페르소나는 **`instructions` 파라미터**에 `Artist.systemPrompt` 주입.
 - 히스토리 관리: **수동 재전송**. 우리 DB(`Message`)의 최근 20턴을 매 요청 `input` 배열에 실어보낸다. OpenAI 서버 상태(`previous_response_id`·`conversation.id`)는 **미사용** — 데이터 소유·벤더 독립.
@@ -150,11 +153,11 @@ B(auth-ready 스키마 + 쿠키 세션)로 가되, 아래를 지켜야 W2에서 
 
 원샷이 시작할 때 스스로 하는 것 (사람 준비물 위에서):
 
-0. **프리체크 (준비물 검증)**: `CREATE_DB_URL`로 Postgres 접속을 시도해 `factory` role 존재·접속을 확인한다. 실패(P1010 등)면 **멈추고** 사람에게 다음을 안내: `CREATE ROLE factory WITH LOGIN CREATEDB PASSWORD '<비번>';` (로컬 슈퍼유저로 실행). ⚠️ **원샷이 슈퍼유저로 role을 자가 생성하지 말 것** — 로컬 trust 인증에선 가능하지만 권한 경계를 넘고 이식성이 없다("계정=사람" 경계 유지).
-1. **폴더 리셋**: 대상은 `apps/w01-persona-chat/`. **이 폴더가 있으면 삭제 후 재생성** — 단 삭제는 **정확히 이 경로로만** 한정(상위 디렉터리·다른 앱 폴더 절대 금지). 매 실행이 깨끗한 빈 폴더에서 시작하도록.
+0. **프리체크 (준비물 검증 — 글로 두지 말고 실제 실행할 것, 2026-09-17 강조)**: `CREATE_DB_URL`로 Postgres 접속을 **실제 명령으로 시도**해 `factory` role 존재·접속을 확인한다(예: `psql "$CREATE_DB_URL" -c "SELECT 1;"` 또는 Node로 접속 테스트 — 원샷이 이 검증을 **건너뛰지 말 것**. run1에서 프리체크가 실제로 스킵돼 P1010을 늦게 만남). 실패(P1010 등)면 **멈추고** 사람에게 다음을 안내: `CREATE ROLE factory WITH LOGIN CREATEDB PASSWORD '<비번>';` (로컬 슈퍼유저로 실행). ⚠️ **원샷이 슈퍼유저로 role을 자가 생성하지 말 것** — 로컬 trust 인증에선 가능하지만 권한 경계를 넘고 이식성이 없다("계정=사람" 경계 유지).
+1. **폴더 리셋**: 대상은 `apps/w01-persona-chat/`. **이 폴더가 있으면 삭제 후 재생성** — 단 삭제는 **정확히 이 경로로만** 한정(상위 디렉터리·다른 앱 폴더 절대 금지). 매 실행이 깨끗한 빈 폴더에서 시작하도록. **또한 이전 dev 서버 좀비 정리(2026-09-17 추가)**: 리셋·재기동 전에 앱 포트(기본 3000)를 점유한 좀비 프로세스를 정리한다(예: `lsof -ti :3000 | xargs -r kill -9`). run1에서 리셋이 이전 dev 서버를 안 죽여 낡은 앱이 포트를 물고 있었음.
 2. **스캐폴드**: 이 폴더 안에 Next.js(App Router)+TS 프로젝트 생성. Prisma는 **`prisma@6 @prisma/client@6`로 핀 설치**(S4 — `latest`/RC 금지).
 3. **앱 `.env` 생성**: 저장소 루트의 `factory/.env.shared`를 읽어 —
-   - `OPENAI_API_KEY`는 그대로 복사,
+   - `OPENAI_API_KEY`는 복사하되 **값 앞뒤 따옴표를 제거**(2026-09-17 추가). `.env.shared`가 `OPENAI_API_KEY="sk-..."`처럼 따옴표를 포함하면, dotenv 구현에 따라 따옴표째 키로 읽혀 **런타임 401**이 난다(run2 이식성 이슈). 앱 `.env`에는 `OPENAI_API_KEY=sk-...`(따옴표 없이) 기록,
    - DB 이름을 앱 슬러그에서 생성(`w01-persona-chat` → `w01_persona_chat`, 하이픈→언더바),
    - `CREATE_DB_URL`의 끝 `/postgres`를 `/<앱DB>`로 치환한 값을 `DATABASE_URL`로 기록,
    - 값 비운 `.env.example`도 함께 생성.
