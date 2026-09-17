@@ -74,6 +74,8 @@ W1 엣지(빈 대화·중단·쿠키 분실 등)는 1부가 커버(p1-spec.md S3
 - **custom server 실행 (조사 확정)**: `server.ts`는 Next 컴파일러를 안 거치므로 `tsx`로 실행 — `dev: "tsx watch server.ts"`, `start: "NODE_ENV=production tsx server.ts"`. `next({ dev, httpServer })`에 http 서버 인스턴스를 넘기고 비-upgrade 트래픽만 `handle(req,res)`로 위임. **Fast Refresh는 이 구성에서 정상 동작**. ⚠️ **`output:"standalone"` 모드와 병용 금지**(custom server 파일을 trace 안 함 — 공식 제약).
 - **개발 로그 (Q1, 휘발 보완)**: 통화는 DB 미저장이라 원샷이 왕복 성립을 자기검증할 흔적이 없다. 따라서 **각 턴의 전사 텍스트·LLM 응답 텍스트를 서버 콘솔(stderr)에 개발 로그로 남긴다**(DB 저장 아님 = 휘발 유지, 화면 자막도 여전히 없음). 원샷·사람이 STT 오작동을 로그로 잡는 용도.
 - **배포 제약**: Vercel serverless는 상주 ws를 호스팅하지 못하고, 지원 경로도 세션 한계(Hobby 5분/Pro ~13분)가 있다. **W2는 로컬 학습 PoC** — 프로덕션 배포는 Out of Scope(상주 서버는 후속).
+- **실행 환경 = 데스크톱 `localhost` 전제 (2026-09-17 결정)**: 마이크(`getUserMedia`)는 secure context에서만 동작하는데, **`localhost`는 HTTP여도 secure context 예외**라 그대로 된다. **모바일 실기기 웹은 이번 주 범위 아님** — 폰은 PC의 `IP:3000`(non-localhost)로 붙어 HTTPS가 강제되고, 그러면 ws도 `wss`로 승격해야 하는 등 *격차(음성 왕복)와 무관한 인프라 잡일*이 원샷 first-pass 리스크만 키운다. **모바일 실경험은 어차피 W2.9(RN 포팅)가 진짜 목표**라 거기서 네이티브로 얻는다. (맥락: 버릴 웹-모바일 코드에 시간 쓰지 않기)
+- **오디오 캡처/재생 계층 분리 (RN 포팅 대비, 2026-09-17 결정)**: 브라우저 종속 API(`getUserMedia`·`MediaRecorder`·`<audio>`)를 통화 로직(턴 관리·ws 전송·재생 큐)과 **섞지 않는다**. 얇은 인터페이스로 봉인 — 예: `AudioCapture { start(); stop(); onUtterance(cb) }`, `AudioPlayer { unlock(); enqueue(url) }`. W2는 이 인터페이스의 **웹 어댑터**(getUserMedia+MediaRecorder+VAD / `<audio>` 큐)만 구현한다. **왜**: W2.9 RN 포팅 때 브라우저 API는 전혀 안 통하므로(getUserMedia 없음 → `react-native-webrtc`/`expo-av`), 이 경계를 인터페이스로 잘라두면 **상위 통화 로직은 그대로 두고 어댑터만 교체**하면 된다. 지금 섞어 짜면 포팅 때 통화 로직까지 다시 써야 한다.
 - **시크릿**: `OPENAI_API_KEY`는 서버에서만 사용. STT/LLM/TTS 호출 전부 서버 경유 — 키를 클라이언트로 절대 노출 금지(오디오도 ws로 서버가 중계).
 
 ## S6. 원샷 실행 규칙 (2부 부트스트랩)
@@ -93,6 +95,10 @@ apps/w02-voice-call/
   lib/
     ws/                # ws 연결·업그레이드 처리·연결별 턴 라우팅
     voice/             # STT→LLM→TTS 파이프라인 + 통화 세션 메모리(연결별 [{role,content}])
+    audio/             # (클라) 오디오 캡처/재생 인터페이스 + 웹 어댑터
+                       #   AudioCapture/AudioPlayer 인터페이스 ← 통화 로직은 이것만 의존
+                       #   web adapter: getUserMedia+MediaRecorder+VAD / <audio> 큐
+                       #   (W2.9 RN 포팅 시 이 어댑터만 네이티브로 교체)
     …                  # W1 lib (prisma client, openai client 등) 재사용
   prisma/              # 1부가 만든 스키마·seed 그대로 (W2 새 테이블 없음)
   package.json         # dev/start 스크립트가 반드시 server.ts를 타게 (next dev 직접 아님)
@@ -164,5 +170,6 @@ AI가 one-shot 안에서 스스로 실행해 통과를 확인한다.
 - **auth 기술**(비밀번호·로그인·세션 보안) — W4 직전 슬롯
 - **통화 저장·다시듣기**(전사 로그·오디오 아카이브) — 휘발이 이번 주 결정
 - **프로덕션 배포**(상주 ws 서버) — 로컬 학습 PoC가 이번 주 범위
+- **모바일 실기기 웹**(HTTPS 터널·`wss` 승격) — 데스크톱 `localhost`만 이번 주 범위. 모바일 실경험은 W2.9(RN 포팅)에서 네이티브로. (단 오디오 캡처/재생은 인터페이스로 분리해 포팅 대비 — S4)
 - **Realtime API / speech-to-speech 통짜** — 의도적 미사용(S4)
 - **얼굴 트래킹·WebRTC**(W2.5), RN 포팅(W2.9)
