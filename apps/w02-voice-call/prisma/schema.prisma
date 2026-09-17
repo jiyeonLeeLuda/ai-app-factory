@@ -1,0 +1,59 @@
+// W2 음성통화 — 데이터 모델. W1(P1) 스키마를 그대로 재현한다(새 테이블 없음, w2-spec S2).
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique // 미래 계정 승격 앵커. W1엔 미검증(저장만).
+  nickName      String // 닉네임 (표시용)
+  passwordHash  String? // W2에서 채움 (W1은 null)
+  emailVerified DateTime? // W2에서 채움 (W1은 null)
+  createdAt     DateTime       @default(now())
+  conversations Conversation[]
+}
+
+model Artist {
+  id            String         @id @default(cuid())
+  slug          String         @unique // URL·조회용 안정 키 ("philip")
+  name          String
+  tagline       String // 한 줄 소개
+  avatarUrl     String? // 없으면 플레이스홀더
+  systemPrompt  String // 페르소나 프롬프트. OpenAI `instructions`로 주입
+  createdAt     DateTime       @default(now())
+  conversations Conversation[]
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artistId  String
+  artist    Artist    @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  messages  Message[]
+
+  @@unique([userId, artistId]) // 한 사용자 × 한 아티스트 = 방 하나
+  @@index([userId, artistId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           Role // user | assistant
+  content        String // 스트리밍 완료 후 최종 텍스트만 저장 (통화는 저장 안 함 — 휘발)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+enum Role {
+  user
+  assistant
+}
