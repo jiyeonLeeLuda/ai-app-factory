@@ -19,15 +19,18 @@
 - 표준 스택 고정: Next.js App Router + TypeScript + Prisma + Postgres(+pgvector), Vercel 배포.
 - 실험의 최소 단위는 앱 완성이 아니라 **로그 한 페이지 완성**.
 
-## 이번 주 목표 (W1) — 확정: P1 AI 페르소나 채팅
+## 이번 주 목표 (W2) — P2 AI 음성 통화
 
-2026-09-18 금요일까지 배포 가능한 풀스택 앱을 하나 만든다.
+채팅(W1) 위에 음성 왕복을 얹어 "전화 거는" 장면을 만든다.
 
-- **앱**: AI 페르소나 채팅(가상 아티스트 "필립"). 폴더 `apps/w01-persona-chat/`.
-- **장면**: 팬이 가상 아티스트에게 말을 걸면 답이 "타이핑되듯" 한 토큰씩 흘러나오는 채팅.
-- **격차**: LLM 토큰 스트리밍(OpenAI Responses API → 서버 SSE 릴레이).
-- **스펙**: [docs/p1-spec.md](./docs/p1-spec.md) · 킥오프 [docs/p1-원샷-킥오프.md](./docs/p1-원샷-킥오프.md) · 로그 [logs/w01.md](./logs/w01.md).
-- 이번 주 방식: **자동화 없이 손으로 한 바퀴** 돌리며 마찰을 줍는다(측정선 오염 방지).
+- **앱**: AI 음성 통화(아티스트 "필립"). 폴더 `apps/w02-voice-call/`.
+- **장면**: 채팅방에서 전화를 걸면 아티스트가 먼저 음성으로 받고, 말하면 STT→LLM→TTS로 음성이 돌아오는 통화 화면.
+- **격차**: 음성 왕복(STT→LLM→TTS) + WebSocket 오디오 릴레이 (경로 = A안 Chained, Realtime API 미사용).
+- **스펙**: [docs/w2-spec.md](./docs/w2-spec.md) — **2부 구조**(1부 = [p1-spec.md](./docs/p1-spec.md) 개정본 재현, 2부 = 음성통화). 씨앗 [docs/w2-prespec-씨앗.md](./docs/w2-prespec-씨앗.md).
+- **준비물**: **W1과 동일**(새 prereq 없음) — Postgres 기동 + `factory` role + `factory/.env.shared`(`OPENAI_API_KEY`+`CREATE_DB_URL`). DB는 원샷이 `w02_voice_call`로 생성. (`OPENAI_API_KEY` 하나가 STT·LLM·TTS 전부 커버)
+- **이번 주 방식**: 감산형 pre-spec 게이트 + **grilling 압박 검증** 통과 후 2부 원샷. 측정은 **1부=회귀 게이트 / 2부=격차 점수**로 분리.
+
+> **W1(P1 AI 페르소나 채팅)은 완료** — 앱 `apps/w01-persona-chat/`, 스펙 [docs/p1-spec.md](./docs/p1-spec.md), 로그 [logs/w01.md](./logs/w01.md). (p1-spec은 2026-09-17 W2 grilling에서 발견한 함정 5개 예방책으로 개정됨)
 
 ## 라인업 (Season 1)
 
@@ -65,6 +68,7 @@ AI는 시크릿을 발급하거나 외부 서비스를 프로비저닝하지 않
 - 원칙: 원샷은 "접속 정보만 있으면 되는 안쪽 일"만 한다. DB를 *띄우는* 건 사람, DB에 *테이블을 만들고 채우는* 건 AI.
 - 각 주 SPEC은 상단에 **"사람 준비물(Prerequisites)"**을 명시해, 원샷 시작 전 체크 가능하게 한다.
 - 예 (W1/P1, 옵션 C): 사람 = 로컬 Postgres 기동 + `CREATEDB` 권한 role 생성 + `factory/.env.shared`(공유 키·베이스 접속). AI = 폴더 리셋·앱 `.env` 생성·DB 이름/생성·테이블(migrate)·시드·구현 등 나머지 전부.
+- **W2 준비물 = W1과 동일** (새 prereq 없음): 위 셋(Postgres·`factory` role·`.env.shared`)이면 충분. `OPENAI_API_KEY` 하나가 STT·LLM·TTS를 모두 커버하고, DB(`w02_voice_call`)는 원샷이 생성한다. (음성 통화는 휘발 — 통화 내용 DB 저장 없음)
 
 ## 구조
 

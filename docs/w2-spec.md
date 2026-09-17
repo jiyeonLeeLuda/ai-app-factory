@@ -70,7 +70,7 @@ W1 엣지(빈 대화·중단·쿠키 분실 등)는 1부가 커버(p1-spec.md S3
 - **오디오 포맷 (조사 확정 2026-09-17)**: 입력 = 브라우저 MediaRecorder **WebM/Opus**. `/audio/transcriptions`가 `.webm`을 **직접 지원 → 변환(ffmpeg) 불필요**. 서버가 ws로 받은 Blob을 **`.webm` 파일명 + `multipart/form-data`의 `file` 필드**로 그대로 전송(SDK가 확장자로 포맷 판별하므로 파일명 필수). 파일 크기 상한 **25MB**(발화 단위라 여유). 출력 = TTS **mp3**.
 - **언어**: ko/en 혼용 허용("여보세요/hello"). STT `language` 강제하지 않음(자동), 페르소나는 한국어 기본.
 - **Realtime API 의도적 미사용**: `gpt-realtime` speech-to-speech 통짜는 **쓰지 않는다**. 근거 — ① STT→LLM→TTS 왕복을 손으로 엮는 게 이번 격차(배움 Z), ② 데이터 소유·벤더 독립(왕복 블랙박스 회피), ③ 비용(Realtime 오디오 $10/$20 per 1M vs Chained 경량).
-- **의존성 핀 (조사 확정 2026-09-17)**: `next@15` 핀(개정된 p1-spec과 동일 — `create-next-app` 기본 `latest`는 16.x라 버전 표류), `prisma@6`·`@prisma/client@6`, `latest`/RC/canary 금지. 추가로 `ws`(WebSocket 서버), `tsx`(server.ts 실행기), OpenAI SDK는 W1과 동일 버전. 새 패키지도 메이저 고정.
+- **의존성 핀 (조사 확정 2026-09-17)**: `next@16.3.5` 핀(개정된 p1-spec과 동일 — **w01이 실제로 성공한 버전**. `latest`는 매 실행 표류), `prisma@6`·`@prisma/client@6`, `latest`/RC/canary 금지. 추가로 `ws`(WebSocket 서버), `tsx`(server.ts 실행기), OpenAI SDK는 W1과 동일 버전. 새 패키지도 메이저 고정.
 - **custom server 실행 (조사 확정)**: `server.ts`는 Next 컴파일러를 안 거치므로 `tsx`로 실행 — `dev: "tsx watch server.ts"`, `start: "NODE_ENV=production tsx server.ts"`. `next({ dev, httpServer })`에 http 서버 인스턴스를 넘기고 비-upgrade 트래픽만 `handle(req,res)`로 위임. **Fast Refresh는 이 구성에서 정상 동작**. ⚠️ **`output:"standalone"` 모드와 병용 금지**(custom server 파일을 trace 안 함 — 공식 제약).
 - **개발 로그 (Q1, 휘발 보완)**: 통화는 DB 미저장이라 원샷이 왕복 성립을 자기검증할 흔적이 없다. 따라서 **각 턴의 전사 텍스트·LLM 응답 텍스트를 서버 콘솔(stderr)에 개발 로그로 남긴다**(DB 저장 아님 = 휘발 유지, 화면 자막도 여전히 없음). 원샷·사람이 STT 오작동을 로그로 잡는 용도.
 - **배포 제약**: Vercel serverless는 상주 ws를 호스팅하지 못하고, 지원 경로도 세션 한계(Hobby 5분/Pro ~13분)가 있다. **W2는 로컬 학습 PoC** — 프로덕션 배포는 Out of Scope(상주 서버는 후속).
@@ -111,7 +111,7 @@ apps/w02-voice-call/
 **1. 폴더 리셋**: 대상 = `apps/w02-voice-call/`. 있으면 삭제 후 재생성(**정확히 이 경로만** — 상위·타 앱 폴더 금지). 깨끗한 빈 폴더에서 시작.
 
 **2. 1부 — W1 재현**: `docs/p1-spec.md`의 **개정본(2026-09-17 — 함정 5개 예방책 포함)** S6(부트스트랩)·S2~S4를 **이 폴더 안에서 그대로 수행**한다. 단 앱 슬러그는 `w02-voice-call` → DB 이름 `w02_voice_call`(하이픈→언더바), `DATABASE_URL`도 그에 맞춘다. 스캐폴드·Prisma 핀·`.env` 생성·`migrate dev`·`db seed`(필립)까지. **여기서 p1-spec.md S5 검증을 먼저 통과**시킨 뒤 2부로 넘어간다(1부가 깨지면 2부 진입 금지).
-   - **상속 함정 차단(p1-spec 개정 반영 확인)**: `next@15` 핀 / LLM `reasoning.effort:minimal`(빈 응답 방지 — 2부 통화 LLM에도 그대로 적용) / `.env` 따옴표 제거 / 프리체크 실제 실행 / dev 포트 좀비 정리. 이 5개가 1부에서 지켜졌는지 2부 진입 전 확인.
+   - **상속 함정 차단(p1-spec 개정 반영 확인)**: `next@16.3.5` 핀 / LLM `reasoning.effort:minimal`(빈 응답 방지 — 2부 통화 LLM에도 그대로 적용) / `.env` 따옴표 제거 / 프리체크 실제 실행 / dev 포트 좀비 정리. 이 5개가 1부에서 지켜졌는지 2부 진입 전 확인.
 
 **3. 2부 — 음성 통화 얹기**:
    - **custom Node server**로 전환(http + `ws`, `server.ts`). `dev: "tsx watch server.ts"` / `start: "NODE_ENV=production tsx server.ts"`(next dev 직접 아님). Next 요청은 `handle(req,res)`로, `/ws` 업그레이드는 `server.on('upgrade')`→ws 핸들러로 라우팅. `output:"standalone"` 금지.

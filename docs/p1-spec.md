@@ -136,7 +136,7 @@ B(auth-ready 스키마 + 쿠키 세션)로 가되, 아래를 지켜야 W2에서 
 ## S4. 비기능 제약
 
 - 스택 고정: Next.js App Router + TypeScript + Prisma + Postgres, Vercel 배포. (pgvector 불필요 — 이번 주 RAG 없음)
-- **Next 버전 핀**: `next@15`로 설치(`create-next-app`이 붙이는 `latest`는 현재 16.x — 매 실행 버전이 흔들려 재현성 저하). 15.x는 App Router 안정·문서 성숙. `latest`/canary 금지. (2026-09-17 추가 — run별 Next 버전 표류 방지)
+- **Next 버전 핀**: `next@16.3.5`로 설치 — **w01 run이 실제로 이 버전으로 성공했으므로 검증된 버전을 고정**한다(`create-next-app`이 붙이는 `latest`는 매 실행 버전이 흔들려 재현성 저하). `latest`/canary 금지. (2026-09-17 추가·정정 — 애초 15 권장은 일반론이었으나 w01 실측=16.3.5가 우선. run별 표류 방지 + 회귀 게이트 정합)
 - **Prisma 버전 핀**: `prisma@6` + `@prisma/client@6`로 설치. `latest`/RC 금지 — Prisma 7+는 `datasource url = env(...)`를 폐기하고 `prisma.config.ts`+driver adapter를 요구해 클래식 `migrate dev`/`db seed` 흐름과 충돌한다(P1 원샷에서 실제 발생).
 - API: **OpenAI Responses API** (`client.responses.create`). 상세 근거는 `docs/api-선행조사-openai.md`.
 - 모델: 기본 **`gpt-5-nano`**(최저비용 $0.05/$0.40 — 이번 주는 시연 아닌 학습/측정용이라 비용 최소화). 톤 품질이 필요하면 `gpt-5.6-luna`($0.20/$1.20)로 상향. 환경변수로 주입, 하드코딩 금지. 키는 `OPENAI_API_KEY`. (최종 목표는 자체 모델 — 이 값은 임시 백엔드일 뿐)
