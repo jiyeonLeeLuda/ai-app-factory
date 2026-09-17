@@ -1,0 +1,42 @@
+{
+  "name": "w025-face-track-call",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch server.ts",
+    "build": "next build",
+    "start": "NODE_ENV=production tsx server.ts",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test:mapping": "tsx scripts/mapping-test.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.0.1",
+    "@pixiv/three-vrm": "3.5.5",
+    "@prisma/client": "6.19.3",
+    "next": "16.3.5",
+    "openai": "^7.15.0",
+    "prisma": "6.19.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "0.180.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "0.180.0",
+    "@types/ws": "^8.18.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.13",
+    "typescript": "^5",
+    "ws": "^8.21.3"
+  }
+}
