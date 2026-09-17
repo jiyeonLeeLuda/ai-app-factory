@@ -19,18 +19,18 @@
 - 표준 스택 고정: Next.js App Router + TypeScript + Prisma + Postgres(+pgvector), Vercel 배포.
 - 실험의 최소 단위는 앱 완성이 아니라 **로그 한 페이지 완성**.
 
-## 이번 주 목표 (W2) — P2 AI 음성 통화
+## 이번 주 목표 (W2.5) — 얼굴 트래킹 영상통화
 
-채팅(W1) 위에 음성 왕복을 얹어 "전화 거는" 장면을 만든다.
+음성통화(W2) 다음, WebRTC로 사람↔사람 **양방향 영상통화**를 만들고 받는쪽 얼굴을 실시간으로 **3D 캐릭터**에 트래킹한다.
 
-- **앱**: AI 음성 통화(아티스트 "필립"). 폴더 `apps/w02-voice-call/`.
-- **장면**: 채팅방에서 전화를 걸면 아티스트가 먼저 음성으로 받고, 말하면 STT→LLM→TTS로 음성이 돌아오는 통화 화면.
-- **격차**: 음성 왕복(STT→LLM→TTS) + WebSocket 오디오 릴레이 (경로 = A안 Chained, Realtime API 미사용).
-- **스펙**: [docs/w2-spec.md](./docs/w2-spec.md) — **2부 구조**(1부 = [p1-spec.md](./docs/p1-spec.md) 개정본 재현, 2부 = 음성통화). 씨앗 [docs/w2-prespec-씨앗.md](./docs/w2-prespec-씨앗.md).
-- **준비물**: **W1과 동일**(새 prereq 없음) — Postgres 기동 + `factory` role + `factory/.env.shared`(`OPENAI_API_KEY`+`CREATE_DB_URL`). DB는 원샷이 `w02_voice_call`로 생성. (`OPENAI_API_KEY` 하나가 STT·LLM·TTS 전부 커버)
-- **이번 주 방식**: 감산형 pre-spec 게이트 + **grilling 압박 검증** 통과 후 2부 원샷. 측정은 **1부=회귀 게이트 / 2부=격차 점수**로 분리.
+- **앱**: 얼굴 트래킹 영상통화(페르소나 "luda"). 폴더 `apps/w025-face-track-call/`.
+- **장면**: 팬이 영상통화를 걸면, 받는쪽(아티스트 luda)이 자기 웹캠 표정을 따라 하는 **3D 캐릭터**로 보인다. 팬은 생얼, 큰 화면=상대·우측상단 PIP=자기.
+- **격차**: 웹캠 얼굴 트래킹 → **3D VRM 캐릭터 실시간 구동** + WebRTC P2P 전송(**B안** = DataChannel로 표정 숫자만 보내고 수신측이 직접 렌더).
+- **스펙**: [docs/w2.5-spec.md](./docs/w2.5-spec.md) — **2부 구조**(1부 = [p1-spec.md](./docs/p1-spec.md) 얇은 재현, 2부 = 영상통화). 설계회고 [캐릭터 전송 A/B 트레이드오프](./docs/회고/2026-09-17-w2.5-캐릭터전송-A영상-vs-B데이터-트레이드오프.md), 다음 주 씨앗 [w3-prespec-씨앗.md](./docs/w3-prespec-씨앗.md).
+- **준비물**: W1 기본 + **신규 2개** — `factory/luda.vrm`(VRoid VRM 1.0 모델), `factory/certs/*.pem`(mkcert 내부망 HTTPS). DB는 원샷이 `w025_face_track_call`로 생성. (영상통화는 휘발 — 저장 없음)
+- **이번 주 방식**: 감산형 pre-spec 게이트 + **grilling 압박 검증**(Q1~Q12) 통과 후 2부 원샷. 측정은 **1부=회귀 게이트 / 2부=격차 점수**로 분리.
 
-> **W1(P1 AI 페르소나 채팅)은 완료** — 앱 `apps/w01-persona-chat/`, 스펙 [docs/p1-spec.md](./docs/p1-spec.md), 로그 [logs/w01.md](./logs/w01.md). (p1-spec은 2026-09-17 W2 grilling에서 발견한 함정 5개 예방책으로 개정됨)
+> **W1·W2 완료** — W1(P1 페르소나 채팅) 앱 `apps/w01-persona-chat/`, 로그 [logs/w01.md](./logs/w01.md); W2(P2 음성통화) 앱 `apps/w02-voice-call/`, 스펙 [w2-spec.md](./docs/w2-spec.md), first-pass 성공(2026-09-17). (p1-spec은 W2 grilling 함정 5개 예방책으로 개정됨)
 
 ## 라인업 (Season 1)
 
@@ -38,9 +38,9 @@
 
 | 주 | 앱 | 장면 | 채우는 격차 |
 |---|---|---|---|
-| **W1 (확정)** | **P1 AI 페르소나 채팅** | 팬이 가상 아티스트와 실시간 대화, 토큰 스트리밍 | **LLM 토큰 스트리밍** |
-| W2 | P2 AI 음성 통화 | AI 아티스트에게 전화 (STT→LLM→TTS) | STT/TTS, WebSocket 오디오 릴레이 |
-| W2.5 | 얼굴 트래킹 영상통화 | 실시간 양방향 영상통화에서 얼굴 표정을 트래킹해 3D 가면을 씌운다 | WebRTC 양방향 영상 + 얼굴 랜드마크 트래킹 + 3D 렌더 |
+| **W1 (완료)** | **P1 AI 페르소나 채팅** | 팬이 가상 아티스트와 실시간 대화, 토큰 스트리밍 | **LLM 토큰 스트리밍** |
+| **W2 (완료)** | P2 AI 음성 통화 | AI 아티스트에게 전화 (STT→LLM→TTS) | STT/TTS, WebSocket 오디오 릴레이 |
+| **W2.5 (현재)** | 얼굴 트래킹 영상통화 | 양방향 영상통화에서 받는쪽 얼굴을 트래킹해 3D 캐릭터로 구동(팬은 생얼) | WebRTC P2P + 얼굴 랜드마크 트래킹 + VRM 3D 렌더 |
 | **W2.9** | RN 앱 포팅 | W1~W2.5를 React Native로 iOS/Android 포팅 (옛 P3 흡수) | React Native, react-native-webrtc |
 | **W3 (도전과제)** | AI 영상통화 | AI 아티스트와 영상통화 — 음성에 맞춰 입모양(립싱크)까지 따라온다 | **STT/TTS 지연 최소화 + TTS 구동 립싱크 아바타 렌더** |
 | W4 | P6 페르소나 장기기억 (RAG) | 아티스트가 팬의 과거 대화·세계관을 기억하고 꺼내 씀 | 임베딩·pgvector 검색·재순위 (RAG 파이프라인) |
@@ -49,7 +49,7 @@
 | W7 | 버퍼 / 지원 레이더 | 공고 구조화 + 이력서 대조 | 실사용 dogfooding |
 
 > 순서·구성은 진행하며 조정한다. 옛 W-라인업(리뷰→필터 등)은 P-라인업으로 교체됨.
-> **영상통화 난이도를 3단으로 분해**: 음성 왕복(W2, WebSocket) → 양방향 영상 + 얼굴 표정 트래킹 가면(W2.5, WebRTC — 자료 많아 상대적 용이) → **AI 영상통화(W3, 도전과제)**. W3가 핵심 어필 라인 — **STT/TTS 지연 최소화 + 음성 구동 립싱크 아바타**가 JYP 공고의 "AI 생성 영상 스트리밍 + 리얼타임 백엔드 + 고성능 API"에 직결. JD 키워드는 WebSocket(W2)·WebRTC(W2.5)로 분산. RN 포팅은 W2.9로 앞당겨(옛 P3 흡수) 이후를 RN 위에서 쌓는다. 발화 승인 게이트는 W5.
+> **영상통화 난이도를 3단으로 분해**: 음성 왕복(W2, WebSocket) → 양방향 영상 + 얼굴 표정 트래킹 3D 캐릭터(W2.5, WebRTC P2P — 미디어서버 없이 DataChannel B안) → **AI 영상통화(W3, 도전과제 — 클라 렌더, 미디어서버 없음)**. W3가 핵심 어필 라인 — **STT/TTS 지연 최소화 + 음성 구동 립싱크 아바타**가 JYP 공고의 "AI 생성 영상 스트리밍 + 리얼타임 백엔드 + 고성능 API"에 직결. JD 키워드는 WebSocket(W2)·WebRTC(W2.5)로 분산. RN 포팅은 W2.9로 앞당겨(옛 P3 흡수) 이후를 RN 위에서 쌓는다. 발화 승인 게이트는 W5.
 > **auth(계정·인증)는 W2에서 분리** — JD 헤드라인이 아니고 1차 시연에도 불필요. 제품상 사용자 식별이 필요해지는 **W4(RAG·개인화) 직전 전용 슬롯**으로 미룸(위치 미정). W1이 깔아둔 auth-ready 스키마가 그때 쓰인다.
 
 ## 원샷 경계: 사람이 준비할 것 vs AI(원샷)가 하는 것
