@@ -1,0 +1,47 @@
+{
+  "name": "w03-ai-avatar-call",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch server.ts",
+    "build": "next build",
+    "start": "NODE_ENV=production tsx server.ts",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test:lipsync": "tsx scripts/lipsync-test.ts",
+    "test:emotion": "tsx scripts/emotion-test.ts",
+    "test:expression": "tsx scripts/expression-test.ts",
+    "test:units": "tsx scripts/lipsync-test.ts && tsx scripts/emotion-test.ts && tsx scripts/expression-test.ts",
+    "test:pipeline": "tsx --env-file=.env scripts/pipeline-test.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@pixiv/three-vrm": "3.5.5",
+    "@pixiv/three-vrm-animation": "3.5.5",
+    "@prisma/client": "6.19.3",
+    "next": "16.3.5",
+    "openai": "^7.17.0",
+    "prisma": "6.19.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "0.180.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "0.180.0",
+    "@types/ws": "^8.18.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.13",
+    "typescript": "^5",
+    "ws": "^8.21.3"
+  }
+}

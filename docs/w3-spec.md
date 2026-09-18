@@ -2,6 +2,8 @@
 
 > 작성 2026-09-17 (v1.0, 오토모드). 재료: `docs/w3-0단계-점수표.md`(감산)·`docs/w3-선행조사.md`(증거)·`docs/w3-기획.md`(설계판단+grilling)·씨앗 `docs/w3-prespec-씨앗.md`. spec_variant: S1+S2+S3+S4+S5
 >
+> **개정 2026-09-18 (v1.1)**: 실기기 실측 튜닝 반영 — 대화모델 luna·TTS 딜리버리·표정 순간이벤트·인사 VRMA 손짓·상체 카메라 등. 아래 **"실측 개정" 섹션이 본문에 우선**한다.
+>
 > **이 파일 하나만 새 세션에 투입해 one-shot 실행한다. 원샷은 2부 구조다:**
 > - **1부** — 빈 `apps/w03-ai-avatar-call/` 폴더에서 **W1 SPEC(`docs/p1-spec.md` 개정본)을 그대로 실행**해 검증된 채팅 앱을 세운다(W1 재현 = 팩토리 회귀 게이트). 얇게 — 채팅 스트리밍까지 재현, 측정은 회귀 통과/실패 이진.
 > - **2부** — 그 위에 이번 격차 **AI 아바타 음성통화**를 얹는다. 이 SPEC 본문은 **2부만** 상세 규정, 1부는 p1-spec.md에 위임.
@@ -23,9 +25,28 @@
 > ⑤ **[W3 필수] VRM 파일** — `factory/luda.vrm`(VRoid VRM 1.0, 표정 `aa/ih/ou/ee/oh/blink/happy/angry/sad/relaxed/surprised/neutral` 내장). 원샷이 `public/models/luda.vrm`로 복사.
 > ⑥ **[선택] mkcert 인증서** `factory/certs/*.pem` — **모바일/내부망 실측 시에만.** 노트북 localhost 자동검증·기본 실측은 **불필요**(localhost는 secure context라 http로도 mic 열림). 폰 UX 확인을 원할 때만 https로 서빙(W2.5 자산 계승).
 
+## 실측 개정 (2026-09-18, v1.1)
+
+> 원샷 산출 후 **실기기 실측·튜닝**으로 스펙 본문과 달라진 결정을 여기 못박는다(재실행 시 이 값 우선). 아래 항목이 본문에 우선한다.
+
+- **대화 모델 상향**: `gpt-5-nano` → **`gpt-5.6-luna`**(대화 품질·재미). ⚠️ luna는 `reasoning.effort:'minimal'` 미지원(400) → **`none`** 사용. env `OPENAI_MODEL`/`OPENAI_REASONING_EFFORT`.
+- **TTS 딜리버리 조종**: `gpt-4o-mini-tts`의 **`instructions` 파라미터**로 톤 지시("밝고 발랄한 소녀"). 모델·보이스·지시 전부 env 교체(`TTS_MODEL`/`TTS_VOICE`/`TTS_INSTRUCTIONS`). 보이스 = **marin**(실측 잠정). ⚠️ 보이스 음색·성별은 공식문서에 설명 없음 → 이름만 두고 귀로 A/B(추측 라벨 금지).
+- **페르소나 강화**: luda `systemPrompt`에 성격·유머·관심사(새벽 감성·아이스 아메리카노·되묻기) 추가. emotion 태그 규약은 여전히 통화 instructions에만(채팅 누수 방지).
+- **표정 = 순간 이벤트**: "1응답 1 emotion 고정"을 → **말하는 동안(입 움직임) 유지, 조용해지면 neutral 복귀**로(웃음 고정 방지). 세기 상한 `EMO_MAX=0.7`(과찡그림 방지), rise ~0.3s / release ~0.6s.
+- **립싱크 튜닝**: `AA_GAIN=2.5`(4는 입 과개방) + `MOUTH_MAX=0.5`(입 벌림 뚜껑 → 오물오물).
+- **눈 깜빡임**: 사인 0→1→0(선형 삼각파는 "탁" 감겨 기괴) + 주기 3~6s.
+- **인사 손짓 = VRMA 애니메이션(격차 확장)**: 원 스펙 "팔 A포즈 고정"에서 → 선턴에 서버 `gesture:wave` → 클라가 **`@pixiv/three-vrm-animation`으로 `waving.vrma` 클립 재생**(`AnimationMixer`). 끝나면 어깨·팔·손을 A포즈로 lerp 복귀. **수동 팔 각도(역기구학 삽질) 폐기** — 애니메이터 모션이 자연스럽고 표준.
+- **카메라 = 상체 위주 고정**: 얼굴 클로즈업(CAM_DIST 0.55) → **상체(CAM_DIST 1.15, 겨냥점 -0.15)**. 손인사가 프레임에 보이게. 무빙 없음.
+- **idle 상체 sway 추가**: 머리에 더해 chest/spine 저진폭 sine.
+- **의존성 추가·핀**: `@pixiv/three-vrm-animation@3.5.5`.
+- **에셋 추가(사람 준비물)**: `factory/waving.vrma` → `public/models/waving.vrma`. ⚠️ 현재는 **라이선스 없는 커뮤니티 repo(Mixamo 유래 추정)의 임시 placeholder** — 배포·실사용 전 Mixamo 직접→bvh2vrma 또는 VRoid 공식 모션으로 교체. **git 미커밋(`*.vrma` gitignore) = 로컬 에셋**, luda.vrm과 동일 취급.
+- **원샷 내부 자가해결 gotchas**: next15 eslint FlatCompat→next16 순환 크래시(flat config 교체) / next16 dev 데몬 stale lock(`.next/dev` 제거·`curl`로 실증) / luna `reasoning.effort` 모델 커플링(none) / GitHub LFS 포인터(raw 131B 포인터 → `download_url`로 실파일).
+
+**미확정(사람 실측 대기)**: 인사 손짓 최종 자연스러움·"만세" 잔상(어깨까지 복귀로 대응) / 상체 프레이밍 정확도 / marin 발랄함 / 립싱크 GAIN·표정 세기 체감. 전부 육안 판정 → 상수 노브로 뺌.
+
 ## S0. 장면 (필수)
 
-팬이 luda와의 채팅방에서 **📞 통화 버튼**을 누르면 통화 화면이 열리고, **luda가 3D 아바타(얼굴 클로즈업)로 먼저 "여보세요"라고 말을 건다.** 팬이 마이크로 말하면 luda가 알아듣고 **자기 목소리(TTS)에 맞춰 입을 움직이며** 대답하고, **대화 감정에 따라 표정(웃음·슬픔·놀람 등)이 바뀐다.** 화면은 luda 아바타가 꽉 채우고(팬 자기 영상 없음), 하단에 통화 상태·마이크 인디케이터·음소거/끊기 컨트롤이 있다.
+팬이 luda와의 채팅방에서 **📞 통화 버튼**을 누르면 통화 화면이 열리고, **luda가 3D 아바타(상체 프레이밍)로 손을 흔들며 먼저 "여보세요"라고 말을 건다.** 팬이 마이크로 말하면 luda가 알아듣고 **자기 목소리(TTS)에 맞춰 입을 움직이며** 대답하고, **대화 감정에 따라 표정(웃음·슬픔·놀람 등)이 바뀐다.** 화면은 luda 아바타가 꽉 채우고(팬 자기 영상 없음), 하단에 통화 상태·마이크 인디케이터·음소거/끊기 컨트롤이 있다.
 
 ## S0. 격차 (필수)
 

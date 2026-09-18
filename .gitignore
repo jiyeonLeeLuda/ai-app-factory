@@ -3,3 +3,8 @@ node_modules/
 .env.*
 .next/
 .vercel/
+.DS_Store
+.omc/
+# VRM/VRMA 3D 에셋은 로컬 준비물(대용량·라이선스) — 커밋 금지, 원샷이 factory에서 복사
+*.vrm
+*.vrma
